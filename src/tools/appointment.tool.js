@@ -27,12 +27,6 @@ Use this tool whenever the user wants to schedule, book, create, or arrange an a
                         "UUID of the customer associated with the appointment. Optional if customer is not specified."
                 },
 
-                service_id: {
-                    type: "string",
-                    description:
-                        "UUID of the service being booked. Optional if service is not specified."
-                },
-
                 title: {
                     type: "string",
                     description:

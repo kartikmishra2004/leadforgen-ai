@@ -11,13 +11,34 @@ const router = express.Router();
 
 router.post("/", async (req, res) => {
     try {
-        const { message, currentTime } = req.body;
+        const {
+            message,
+            currentTime,
+            organization_id,
+            customer_id,
+            title,
+            notes
+        } = req.body;
         const referenceTime = currentTime || new Date().toString();
+
+        let systemContext = `${SYSTEM_PROMPT}\n\nCurrent Reference Time: ${referenceTime}`;
+        if (organization_id) {
+            systemContext += `\nTarget Organization ID: ${organization_id}`;
+        }
+        if (customer_id) {
+            systemContext += `\nTarget Customer ID: ${customer_id}`;
+        }
+        if (title) {
+            systemContext += `\nPreset Title: ${title}`;
+        }
+        if (notes) {
+            systemContext += `\nPreset Notes: ${notes}`;
+        }
 
         const messages = [
             {
                 role: "system",
-                content: `${SYSTEM_PROMPT}\n\nCurrent Reference Time: ${referenceTime}`
+                content: systemContext
             },
 
             {
