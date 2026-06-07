@@ -9,17 +9,20 @@ app.use(express.json());
 
 app.use("/api/chat", chatRoutes);
 
-app.use("/", (req, res) => {
+app.use("/api/health", (req, res) => {
     res.json({
         message: "LeadForGen AI Server is running",
+        status: "ok",
+        timestamp: new Date().toISOString(),
     });
 });
 
-const PORT =
-    process.env.PORT || 5000;
-
-app.listen(PORT, () => {
-    console.log(
-        `Server running on port ${PORT}`
-    );
+app.use((err, req, res, next) => {
+    res.status(500).json({
+        message: "Something went wrong",
+        status: "error",
+        timestamp: new Date().toISOString(),
+    });
 });
+
+export default app;
