@@ -1,14 +1,43 @@
 import { supabase } from "../config/supabase.js";
 
 export const createAppointment = async (payload) => {
+    // Cleanse customer_id
+    let customer_id = payload.customer_id;
+    if (customer_id === "" || customer_id === "null" || customer_id === undefined) {
+        customer_id = null;
+    }
+
+    // 1. Validate inputs
+    if (!payload.appointment_date || isNaN(new Date(payload.appointment_date).getTime())) {
+        throw new Error("Invalid date/time format. Please provide a valid date and time.");
+    }
+    if (!payload.title || payload.title.trim() === "") {
+        throw new Error("Title is required.");
+    }
+
+    // 2. Check slot availability automatically
+    const availability = await checkSlotAvailability({
+        organization_id: payload.organization_id,
+        appointment_date: payload.appointment_date
+    });
+
+    if (!availability.is_available) {
+        throw new Error("The requested slot is already booked. Please try another date or time.");
+    }
+
+    // Explicitly construct insert database payload with valid schema columns only
+    const insertPayload = {
+        organization_id: payload.organization_id,
+        customer_id: customer_id,
+        title: payload.title,
+        appointment_date: payload.appointment_date,
+        notes: payload.notes || null,
+        status: "scheduled"
+    };
+
     const { data, error } = await supabase
         .from("appointments")
-        .insert([
-            {
-                ...payload,
-                status: "scheduled"
-            }
-        ])
+        .insert([insertPayload])
         .select()
         .single();
 

@@ -8,7 +8,7 @@ export const appointmentToolDefinition = {
 
         description: `
 Create a new appointment for a customer within an organization.
-Use this tool whenever the user wants to schedule, book, create, or arrange an appointment.
+Only call this tool when the user has explicitly provided both a title and an appointment date/time. Do not call this tool if either parameter is missing.
 `,
 
         parameters: {
@@ -22,7 +22,7 @@ Use this tool whenever the user wants to schedule, book, create, or arrange an a
                 },
 
                 customer_id: {
-                    type: "string",
+                    type: ["string", "null"],
                     description:
                         "UUID of the customer associated with the appointment. Optional if customer is not specified."
                 },
@@ -42,7 +42,7 @@ Use this tool whenever the user wants to schedule, book, create, or arrange an a
                 },
 
                 notes: {
-                    type: "string",
+                    type: ["string", "null"],
                     description:
                         "Additional information or notes related to the appointment."
                 }

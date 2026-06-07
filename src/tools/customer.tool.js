@@ -21,8 +21,8 @@ Use this tool to find a customer ID when the user mentions a customer name or to
                 },
 
                 search_query: {
-                    type: "string",
-                    description: "Name or partial name of the customer to search for."
+                    type: ["string", "null"],
+                    description: "Name or partial name of the customer to search for. If null or not provided, searches all customers."
                 }
             },
 
@@ -34,5 +34,12 @@ Use this tool to find a customer ID when the user mentions a customer name or to
 };
 
 export const searchCustomersExecutor = async (args) => {
-    return await searchCustomers(args);
+    const result = await searchCustomers(args);
+    if (!result || result.length === 0) {
+        return {
+            status: "error",
+            message: "No matching customers found."
+        };
+    }
+    return result;
 };

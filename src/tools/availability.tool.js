@@ -8,7 +8,7 @@ export const availabilityToolDefinition = {
 
         description: `
 Check if a specific date and time slot is available for booking a 1-hour appointment.
-You MUST always call this tool to verify availability before calling 'create_appointment'.
+Only call this tool when the user has explicitly provided the appointment date/time. Do not call this tool if the date/time is missing.
 `,
 
         parameters: {
