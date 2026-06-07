@@ -8,7 +8,7 @@ export const appointmentToolDefinition = {
 
         description: `
 Create a new appointment for a customer within an organization.
-Only call this tool when the user has explicitly provided both a title and an appointment date/time. Do not call this tool if either parameter is missing.
+CRITICAL: You MUST NOT call this tool if the user has only specified a time (e.g., "at 3 PM") without a day/date, or only specified a day/date (e.g., "tomorrow") without a time, or if the title is missing. In these cases, you must ask the user for the missing fields instead of calling this tool.
 `,
 
         parameters: {
@@ -49,9 +49,7 @@ Only call this tool when the user has explicitly provided both a title and an ap
             },
 
             required: [
-                "organization_id",
-                "title",
-                "appointment_date"
+                "organization_id"
             ]
         }
     }

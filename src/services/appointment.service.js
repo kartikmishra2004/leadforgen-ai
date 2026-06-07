@@ -8,11 +8,14 @@ export const createAppointment = async (payload) => {
     }
 
     // 1. Validate inputs
-    if (!payload.appointment_date || isNaN(new Date(payload.appointment_date).getTime())) {
+    if (!payload.appointment_date) {
+        throw new Error("Appointment date and time are required.");
+    }
+    if (isNaN(new Date(payload.appointment_date).getTime())) {
         throw new Error("Invalid date/time format. Please provide a valid date and time.");
     }
     if (!payload.title || payload.title.trim() === "") {
-        throw new Error("Title is required.");
+        throw new Error("Appointment title is required.");
     }
 
     // 2. Check slot availability automatically
@@ -47,6 +50,9 @@ export const createAppointment = async (payload) => {
 };
 
 export const checkSlotAvailability = async ({ organization_id, appointment_date }) => {
+    if (!appointment_date) {
+        throw new Error("Appointment date and time are required to check availability.");
+    }
     const requestedStart = new Date(appointment_date);
     if (isNaN(requestedStart.getTime())) {
         throw new Error("Invalid appointment date format.");

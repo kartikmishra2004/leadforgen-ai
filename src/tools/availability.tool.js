@@ -8,7 +8,7 @@ export const availabilityToolDefinition = {
 
         description: `
 Check if a specific date and time slot is available for booking a 1-hour appointment.
-Only call this tool when the user has explicitly provided the appointment date/time. Do not call this tool if the date/time is missing.
+CRITICAL: You MUST NOT call this tool if the user has only specified a time (e.g., "at 3 PM") without a day/date, or only specified a day/date (e.g., "tomorrow") without a time. In these cases, you must ask the user for the missing day/date or time instead of calling this tool.
 `,
 
         parameters: {
@@ -27,8 +27,7 @@ Only call this tool when the user has explicitly provided the appointment date/t
             },
 
             required: [
-                "organization_id",
-                "appointment_date"
+                "organization_id"
             ]
         }
     }
