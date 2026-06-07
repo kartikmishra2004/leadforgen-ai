@@ -1,0 +1,44 @@
+{
+  "name": "leadforgen-ai",
+  "version": "1.0.0",
+  "description": "Multi-tenant SaaS platform that helps service businesses generate leads, schedule appointments, build websites, and manage customers with AI automation.",
+  "keywords": [
+    "leadforgen",
+    "saas",
+    "crm",
+    "lead-generation",
+    "appointment-scheduling",
+    "ai-chatbot",
+    "groq",
+    "supabase",
+    "whatsapp-automation",
+    "website-builder",
+    "customer-management",
+    "quote-management",
+    "multi-tenant",
+    "business-automation",
+    "ai-agent",
+    "local-business",
+    "service-business",
+    "booking-system",
+    "react",
+    "typescript"
+  ],
+  "license": "ISC",
+  "author": "Krtik Mishra",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "groq-sdk": "^1.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
