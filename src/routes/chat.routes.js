@@ -59,67 +59,48 @@ router.post("/", async (req, res) => {
             ];
         }
 
-        const firstResponse =
-            await generateResponse({
-                messages,
+        let currentMessages = [...messages];
+        let runLoop = true;
+        let lastToolResult = null;
+
+        while (runLoop) {
+            const response = await generateResponse({
+                messages: currentMessages,
                 tools: TOOLS
             });
 
-        const assistantMessage =
-            firstResponse.choices[0].message;
+            const assistantMessage = response.choices[0].message;
+            currentMessages.push(assistantMessage);
 
-        if (!assistantMessage.tool_calls) {
-            return res.json({
-                success: true,
-                reply: assistantMessage.content
-            });
-        }
+            if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+                const toolCall = assistantMessage.tool_calls[0];
+                const toolName = toolCall.function.name;
+                const args = JSON.parse(toolCall.function.arguments);
+                const executor = TOOL_EXECUTORS[toolName];
 
-        const toolCall =
-            assistantMessage.tool_calls[0];
+                if (!executor) {
+                    throw new Error(`No executor for ${toolName}`);
+                }
 
-        const toolName =
-            toolCall.function.name;
+                const toolResult = await executor(args);
+                lastToolResult = toolResult;
 
-        const args = JSON.parse(
-            toolCall.function.arguments
-        );
-
-        const executor =
-            TOOL_EXECUTORS[toolName];
-
-        if (!executor) {
-            throw new Error(
-                `No executor for ${toolName}`
-            );
-        }
-
-        const toolResult =
-            await executor(args);
-
-        const finalMessages = [
-            ...messages,
-
-            assistantMessage,
-
-            {
-                role: "tool",
-                tool_call_id: toolCall.id,
-                content: JSON.stringify(toolResult)
+                currentMessages.push({
+                    role: "tool",
+                    tool_call_id: toolCall.id,
+                    content: JSON.stringify(toolResult)
+                });
+            } else {
+                runLoop = false;
             }
-        ];
+        }
 
-        const finalResponse =
-            await generateResponse({
-                messages: finalMessages
-            });
+        const finalAssistantMessage = currentMessages[currentMessages.length - 1];
 
         return res.json({
             success: true,
-            reply:
-                finalResponse.choices[0]
-                    .message.content,
-            data: toolResult
+            reply: finalAssistantMessage.content,
+            data: lastToolResult
         });
 
     } catch (error) {
