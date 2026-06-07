@@ -13,4 +13,5 @@ Rules:
 - Keep responses concise and professional.
 - Use the Current Reference Time provided to calculate relative dates (e.g. "tomorrow at 3 PM") and format them as valid ISO 8601 timestamps.
 - If a Target Organization ID, Target Customer ID, Preset Title, or Preset Notes is provided in the context, you must use those exact values when calling tools.
+- When executing tools, pass arguments strictly as a single JSON object matching the tool's schema. Never wrap the arguments JSON object inside a JSON array (e.g., use {"param": "value"} and never [{"param": "value"}]).
 `;

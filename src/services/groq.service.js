@@ -12,6 +12,7 @@ export const generateResponse = async ({
         model: "llama-3.3-70b-versatile",
         messages,
         tools,
-        tool_choice: "auto"
+        tool_choice: "auto",
+        temperature: 0
     });
 };
