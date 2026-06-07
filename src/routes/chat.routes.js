@@ -63,12 +63,25 @@ router.post("/", async (req, res) => {
         let runLoop = true;
         let lastToolResult = null;
 
+        const isCustomerPreset = customer_id && customer_id !== "null" && customer_id !== "";
+        const hasSearchedInHistory = messages.some(msg => 
+            msg.role === "assistant" && 
+            msg.content && 
+            (msg.content.toLowerCase().includes("customer") || msg.content.toLowerCase().includes("which one"))
+        );
+
         while (runLoop) {
             console.log("--- CHAT LOOP ITERATION ---");
             console.log("Messages sent to LLM:", JSON.stringify(currentMessages, null, 2));
+
+            let availableTools = TOOLS;
+            if (!isCustomerPreset && !hasSearchedInHistory) {
+                availableTools = TOOLS.filter(t => t.function.name === "search_customers");
+            }
+
             const response = await generateResponse({
                 messages: currentMessages,
-                tools: TOOLS
+                tools: availableTools
             });
 
             const assistantMessage = response.choices[0].message;
@@ -76,21 +89,42 @@ router.post("/", async (req, res) => {
             currentMessages.push(assistantMessage);
 
             if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+                const isCustomerPreset = customer_id && customer_id !== "null" && customer_id !== "";
+                const hasSearchCall = assistantMessage.tool_calls.some(tc => tc.function.name === "search_customers");
+                const hasSearchedInHistoryText = currentMessages.some(msg => 
+                    msg.role === "assistant" && 
+                    msg.content && 
+                    (msg.content.toLowerCase().includes("customer") || msg.content.toLowerCase().includes("which one"))
+                );
+                const isCustomerResolved = hasSearchCall || hasSearchedInHistoryText;
+
+                let forceStop = false;
                 for (const toolCall of assistantMessage.tool_calls) {
                     const toolName = toolCall.function.name;
                     const args = JSON.parse(toolCall.function.arguments);
-                    console.log("Executing tool:", toolName, "with args:", args);
-                    const executor = TOOL_EXECUTORS[toolName];
-
-                    if (!executor) {
-                        throw new Error(`No executor for ${toolName}`);
-                    }
-
+                    
                     let toolResult;
-                    try {
-                        toolResult = await executor(args);
-                    } catch (err) {
-                        toolResult = { error: err.message };
+                    if (!isCustomerPreset && (toolName === "check_slot_availability" || toolName === "create_appointment") && !isCustomerResolved) {
+                        toolResult = {
+                            error: "You must first call 'search_customers' to list/search customers and ask the user to explicitly select a customer or confirm booking without a customer before calling this tool."
+                        };
+                    } else if (!isCustomerPreset && hasSearchCall && !hasSearchedInHistoryText && (toolName === "check_slot_availability" || toolName === "create_appointment")) {
+                        toolResult = {
+                            error: "You must call 'search_customers' first, present the results, and wait for the user to explicitly confirm selection or request booking without a customer in the next turn before calling this tool."
+                        };
+                    } else {
+                        console.log("Executing tool:", toolName, "with args:", args);
+                        const executor = TOOL_EXECUTORS[toolName];
+
+                        if (!executor) {
+                            throw new Error(`No executor for ${toolName}`);
+                        }
+
+                        try {
+                            toolResult = await executor(args);
+                        } catch (err) {
+                            toolResult = { error: err.message };
+                        }
                     }
                     console.log("Tool execution result:", JSON.stringify(toolResult, null, 2));
                     lastToolResult = toolResult;
@@ -100,6 +134,37 @@ router.post("/", async (req, res) => {
                         tool_call_id: toolCall.id,
                         content: JSON.stringify(toolResult)
                     });
+
+                    if (toolName === "search_customers" && !isCustomerPreset && !hasSearchedInHistoryText) {
+                        forceStop = true;
+                    }
+                }
+
+                if (forceStop) {
+                    console.log("Forcing stop after search_customers. Generating final response...");
+                    const finalMessages = currentMessages.map((msg, index) => {
+                        if (index === 0 && msg.role === "system") {
+                            return {
+                                role: "system",
+                                content: msg.content + "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Customer ID (UUID), Email, and Phone number. Do NOT call any more tools in this turn. Ask the user which customer they want to book for."
+                            };
+                        }
+                        return msg;
+                    });
+
+                    finalMessages.push({
+                        role: "user",
+                        content: "Please list the customer search results (including Name, Customer ID, Email, and Phone) and ask me which customer to book for."
+                    });
+
+                    const finalResponse = await generateResponse({
+                        messages: finalMessages,
+                        tools: []
+                    });
+                    const finalAssistantMsg = finalResponse.choices[0].message;
+                    console.log("Final forced text response:", JSON.stringify(finalAssistantMsg, null, 2));
+                    currentMessages.push(finalAssistantMsg);
+                    runLoop = false;
                 }
             } else {
                 runLoop = false;

@@ -29,7 +29,9 @@ CRITICAL RULES:
 3. TOOL CALLING RESTRICTIONS:
    - Do NOT call 'create_appointment' under any circumstances unless the user has explicitly provided a specific appointment date, a specific appointment time, and the title. Calling this tool with missing properties (like title or appointment_date) is strictly forbidden.
    - Do NOT call 'check_slot_availability' unless the user has explicitly provided a specific appointment date and a specific appointment time.
-   - Do NOT call 'search_customers' unless the user explicitly asks to search or mentions a customer name.
+   - Do NOT call 'search_customers' unless the user explicitly asks to search, mentions a customer name, or is in the booking flow with all appointment parameters (title, date, and time) fulfilled.
+   - CRITICAL (TURN BOUNDARIES): You MUST NOT call 'check_slot_availability' or 'create_appointment' unless the last user message (role: user) in the conversation history explicitly selects/confirms a customer or explicitly requests to book without a customer ("no customer", "none", "without customer").
+   - If the last user message is the initial booking request, you are strictly forbidden from calling 'check_slot_availability' or 'create_appointment'. In this turn, you MUST ONLY call 'search_customers' to list/search customers, present the search results, and ask the user which customer to book for.
 4. SLOT CHECKING REQUIRED: You must always call 'check_slot_availability' before calling 'create_appointment'. If the slot is occupied (is_available is false), STOP, inform the user, and ask for a new time. Never automatically book a different slot.
 5. FLOW DETERMINATION:
    - SEARCH FLOW (User wants to search for a customer; e.g., "Search for customer Kartik"):
@@ -38,7 +40,12 @@ CRITICAL RULES:
      - If no matches, reply "No matching customers found." and STOP. Under no circumstances should you call check_slot_availability, create_appointment, or search_customers again.
    - BOOKING FLOW (User wants to book/schedule an appointment; e.g., "book an appointment for John" or "Can you create appointment?"):
      - If missing title, date, or time: STOP immediately, ask the user for them, and do NOT call any tools.
-     - If customer name is mentioned, call 'search_customers' using the name provided. If no matches, proceed to check slot availability and book with customer_id as null.
-     - If no customer name is mentioned, do not call 'search_customers', check availability, and book with customer_id as null.
+      - If all parameters (title, date, and time) are fulfilled, the flow MUST be split across turns:
+       - FIRST TURN (Searching/presenting customers): Call 'search_customers' to list/search customers (using the customer name from the request if provided, or search_query null if no name was mentioned). Present the list of customer results (you MUST include each customer's Name, Customer ID/UUID, Email, and Phone number in the text response), and ask the user to tell you for which customer they want to book. Do NOT call 'check_slot_availability' or 'create_appointment' in this turn.
+       - SECOND TURN (After user responds with customer choice):
+         - If the user explicitly says "no customer" (or "book without customer", "none", etc.): Call 'check_slot_availability' first, and then call 'create_appointment' with 'customer_id' as null.
+         - If the user specifies a customer (e.g. they pick/tell you a customer):
+           - Retrieve the customer ID from the text of the first turn's response in history, call 'check_slot_availability' first, and then call 'create_appointment' with that customer's ID in the 'customer_id' parameter.
+           - If multiple matches, list customer names and ask the user to pick.
 6. TOOL EXECUTION: When calling a tool, only output the tool call block. Use the provided Target ID/Preset values, never invent IDs, and use the Current Reference Time to resolve relative dates.
 `;

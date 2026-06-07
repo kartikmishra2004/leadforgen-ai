@@ -1,7 +1,8 @@
 import Groq from "groq-sdk";
 
 export const groq = new Groq({
-    apiKey: process.env.GROQ_API_KEY
+    apiKey: process.env.GROQ_API_KEY,
+    timeout: 20 * 1000
 });
 
 export const generateResponse = async ({
