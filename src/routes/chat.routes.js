@@ -13,6 +13,7 @@ router.post("/", async (req, res) => {
     try {
         const {
             message,
+            messages: clientMessages,
             currentTime,
             organization_id,
             customer_id,
@@ -35,17 +36,28 @@ router.post("/", async (req, res) => {
             systemContext += `\nPreset Notes: ${notes}`;
         }
 
-        const messages = [
-            {
-                role: "system",
-                content: systemContext
-            },
-
-            {
-                role: "user",
-                content: message
-            }
-        ];
+        let messages = [];
+        if (clientMessages && Array.isArray(clientMessages)) {
+            const history = clientMessages.filter(msg => msg.role !== 'system');
+            messages = [
+                {
+                    role: "system",
+                    content: systemContext
+                },
+                ...history
+            ];
+        } else {
+            messages = [
+                {
+                    role: "system",
+                    content: systemContext
+                },
+                {
+                    role: "user",
+                    content: message
+                }
+            ];
+        }
 
         const firstResponse =
             await generateResponse({
