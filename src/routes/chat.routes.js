@@ -164,9 +164,9 @@ router.post("/", async (req, res) => {
                         if (index === 0 && msg.role === "system") {
                             let addedPrompt = "";
                             if (isBookingFlow) {
-                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. The response MUST be a single line of text. Do NOT include emails, phone numbers, or Customer IDs (UUIDs). You MUST format the response exactly as: 'these are the [number of customers] customers I found: [Customer Name 1], [Customer Name 2], ..., do you want to book appointment for them or someone else? or even book without a customer?' replacing the brackets with the actual names of the retrieved customers. Do NOT call any more tools in this turn.";
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. The response MUST be a single line of text under 15 words. Format exactly as: 'I found customers: [comma-separated names]. Book for one or without customer?' replacing the brackets with the retrieved names. Do NOT call any more tools in this turn.";
                             } else {
-                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. Show a short, concise message listing them. For each customer, ONLY show their name. Do NOT print their Customer ID (UUID) and do NOT show their ID in brackets, just their name. Do NOT call any more tools in this turn. You MUST NOT ask the user about booking, appointments, scheduling, or booking without a customer. Just show the short list and say nothing about booking.";
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. The response MUST be a single line of text under 12 words. Format exactly as: 'Customers: [comma-separated names].' replacing the brackets with the retrieved names. Do NOT call any more tools in this turn. You MUST NOT ask about booking, appointments, or scheduling.";
                             }
                             return {
                                 role: "system",
@@ -178,9 +178,9 @@ router.post("/", async (req, res) => {
 
                     let userPrompt = "";
                     if (isBookingFlow) {
-                        userPrompt = "Please list the customer search results as a single line containing only names (no emails, no phone numbers, no IDs) in this exact format: 'these are the [number of customers] customers I found: [comma-separated names], do you want to book appointment for them or someone else? or even book without a customer?'";
+                        userPrompt = "Please list the customer search results as a single line containing only names (no emails, no phone numbers, no IDs) in this exact format: 'I found customers: [comma-separated names]. Book for one or without customer?'";
                     } else {
-                        userPrompt = "Please show a short message with the customer search results (at most 4 customers). For each customer, ONLY show their name. Do NOT show their ID (neither in brackets nor otherwise), email, or phone number. Do NOT ask or talk about booking or appointments.";
+                        userPrompt = "Please list the customer search results as a single line containing only names in this exact format: 'Customers: [comma-separated names].'";
                     }
 
                     finalMessages.push({
