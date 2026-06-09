@@ -121,6 +121,16 @@ router.post("/", async (req, res) => {
                         }
 
                         try {
+                            if (toolName === "search_customers") {
+                                const isBookingFlow = currentMessages.some(msg => 
+                                    msg.role === "user" && 
+                                    (msg.content.toLowerCase().includes("book") || 
+                                     msg.content.toLowerCase().includes("appointment") || 
+                                     msg.content.toLowerCase().includes("appointent") || 
+                                     msg.content.toLowerCase().includes("schedule"))
+                                );
+                                args.limit = isBookingFlow ? 5 : 4;
+                            }
                             toolResult = await executor(args);
                         } catch (err) {
                             toolResult = { error: err.message };
@@ -142,19 +152,41 @@ router.post("/", async (req, res) => {
 
                 if (forceStop) {
                     console.log("Forcing stop after search_customers. Generating final response...");
+                    
+                    const isBookingFlow = currentMessages.some(msg => 
+                        msg.role === "user" && 
+                        (msg.content.toLowerCase().includes("book") || 
+                         msg.content.toLowerCase().includes("appointment") || 
+                         msg.content.toLowerCase().includes("appointent") || 
+                         msg.content.toLowerCase().includes("schedule"))
+                    );
+
                     const finalMessages = currentMessages.map((msg, index) => {
                         if (index === 0 && msg.role === "system") {
+                            let addedPrompt = "";
+                            if (isBookingFlow) {
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Customer ID (UUID), Email, and Phone number. Do NOT call any more tools in this turn. You MUST ask the user exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                            } else {
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. Show a short, concise message listing them. Do NOT call any more tools in this turn. You MUST NOT ask the user about booking, appointments, scheduling, or booking without a customer. Just show the short list and say nothing about booking.";
+                            }
                             return {
                                 role: "system",
-                                content: msg.content + "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Customer ID (UUID), Email, and Phone number. Do NOT call any more tools in this turn. Ask the user which customer they want to book for."
+                                content: msg.content + addedPrompt
                             };
                         }
                         return msg;
                     });
 
+                    let userPrompt = "";
+                    if (isBookingFlow) {
+                        userPrompt = "Please list the customer search results (including Name, Customer ID, Email, and Phone) and ask me exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                    } else {
+                        userPrompt = "Please show a short message with the customer search results (at most 4 customers). Do NOT ask or talk about booking or appointments.";
+                    }
+
                     finalMessages.push({
                         role: "user",
-                        content: "Please list the customer search results (including Name, Customer ID, Email, and Phone) and ask me which customer to book for."
+                        content: userPrompt
                     });
 
                     const finalResponse = await generateResponse({
