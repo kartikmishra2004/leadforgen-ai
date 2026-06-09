@@ -9,11 +9,15 @@ export const generateResponse = async ({
     messages,
     tools = []
 }) => {
-    return await groq.chat.completions.create({
+    const payload = {
         model: "llama-3.1-8b-instant",
         messages,
-        tools,
-        tool_choice: "auto",
         temperature: 0
-    });
+    };
+    if (tools && tools.length > 0) {
+        payload.tools = tools;
+        payload.tool_choice = "auto";
+        payload.parallel_tool_calls = false;
+    }
+    return await groq.chat.completions.create(payload);
 };

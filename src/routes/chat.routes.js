@@ -62,6 +62,7 @@ router.post("/", async (req, res) => {
         let currentMessages = [...messages];
         let runLoop = true;
         let lastToolResult = null;
+        let lastExecutedTool = null;
 
         const isCustomerPreset = customer_id && customer_id !== "null" && customer_id !== "";
         const hasSearchedInHistory = messages.some(msg => 
@@ -138,6 +139,7 @@ router.post("/", async (req, res) => {
                     }
                     console.log("Tool execution result:", JSON.stringify(toolResult, null, 2));
                     lastToolResult = toolResult;
+                    lastExecutedTool = toolName;
 
                     currentMessages.push({
                         role: "tool",
@@ -165,9 +167,9 @@ router.post("/", async (req, res) => {
                         if (index === 0 && msg.role === "system") {
                             let addedPrompt = "";
                             if (isBookingFlow) {
-                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Customer ID (UUID), Email, and Phone number. Do NOT call any more tools in this turn. You MUST ask the user exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Email, and Phone number. Do NOT print their Customer ID (UUID) and do NOT show their ID in brackets, just their name. Do NOT call any more tools in this turn. You MUST ask the user exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
                             } else {
-                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. Show a short, concise message listing them. Do NOT call any more tools in this turn. You MUST NOT ask the user about booking, appointments, scheduling, or booking without a customer. Just show the short list and say nothing about booking.";
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. Show a short, concise message listing them. For each customer, ONLY show their name. Do NOT print their Customer ID (UUID) and do NOT show their ID in brackets, just their name. Do NOT call any more tools in this turn. You MUST NOT ask the user about booking, appointments, scheduling, or booking without a customer. Just show the short list and say nothing about booking.";
                             }
                             return {
                                 role: "system",
@@ -179,9 +181,9 @@ router.post("/", async (req, res) => {
 
                     let userPrompt = "";
                     if (isBookingFlow) {
-                        userPrompt = "Please list the customer search results (including Name, Customer ID, Email, and Phone) and ask me exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                        userPrompt = "Please list the customer search results (including Name, Email, and Phone, but NOT Customer ID) and ask me exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
                     } else {
-                        userPrompt = "Please show a short message with the customer search results (at most 4 customers). Do NOT ask or talk about booking or appointments.";
+                        userPrompt = "Please show a short message with the customer search results (at most 4 customers). For each customer, ONLY show their name. Do NOT show their ID (neither in brackets nor otherwise), email, or phone number. Do NOT ask or talk about booking or appointments.";
                     }
 
                     finalMessages.push({
@@ -208,7 +210,7 @@ router.post("/", async (req, res) => {
         return res.json({
             success: true,
             reply: finalAssistantMessage.content,
-            data: lastToolResult
+            data: lastExecutedTool === "search_customers" ? null : lastToolResult
         });
 
     } catch (error) {
