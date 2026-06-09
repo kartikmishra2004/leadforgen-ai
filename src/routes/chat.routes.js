@@ -76,9 +76,6 @@ router.post("/", async (req, res) => {
             console.log("Messages sent to LLM:", JSON.stringify(currentMessages, null, 2));
 
             let availableTools = TOOLS;
-            if (!isCustomerPreset && !hasSearchedInHistory) {
-                availableTools = TOOLS.filter(t => t.function.name === "search_customers");
-            }
 
             const response = await generateResponse({
                 messages: currentMessages,
@@ -167,7 +164,7 @@ router.post("/", async (req, res) => {
                         if (index === 0 && msg.role === "system") {
                             let addedPrompt = "";
                             if (isBookingFlow) {
-                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. For each customer, you MUST print their Name, Email, and Phone number. Do NOT print their Customer ID (UUID) and do NOT show their ID in brackets, just their name. Do NOT call any more tools in this turn. You MUST ask the user exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                                addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results to the user. The response MUST be a single line of text. Do NOT include emails, phone numbers, or Customer IDs (UUIDs). You MUST format the response exactly as: 'these are the [number of customers] customers I found: [Customer Name 1], [Customer Name 2], ..., do you want to book appointment for them or someone else? or even book without a customer?' replacing the brackets with the actual names of the retrieved customers. Do NOT call any more tools in this turn.";
                             } else {
                                 addedPrompt = "\n\nIMPORTANT: You have just executed 'search_customers'. You MUST now present the list of customer results (at most 4) to the user. Show a short, concise message listing them. For each customer, ONLY show their name. Do NOT print their Customer ID (UUID) and do NOT show their ID in brackets, just their name. Do NOT call any more tools in this turn. You MUST NOT ask the user about booking, appointments, scheduling, or booking without a customer. Just show the short list and say nothing about booking.";
                             }
@@ -181,7 +178,7 @@ router.post("/", async (req, res) => {
 
                     let userPrompt = "";
                     if (isBookingFlow) {
-                        userPrompt = "Please list the customer search results (including Name, Email, and Phone, but NOT Customer ID) and ask me exactly: 'these are the five customers I found, do you want to book appointment for them or someone else? or even book without a customer?'";
+                        userPrompt = "Please list the customer search results as a single line containing only names (no emails, no phone numbers, no IDs) in this exact format: 'these are the [number of customers] customers I found: [comma-separated names], do you want to book appointment for them or someone else? or even book without a customer?'";
                     } else {
                         userPrompt = "Please show a short message with the customer search results (at most 4 customers). For each customer, ONLY show their name. Do NOT show their ID (neither in brackets nor otherwise), email, or phone number. Do NOT ask or talk about booking or appointments.";
                     }
